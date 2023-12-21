@@ -1,0 +1,17 @@
+*.lib
+*.obj
+/.vs
+/out/build/x64-Debug
+/out/build/x64-Release/.cmake
+/out/build/x64-Release/CMakeFiles
+/out/build/x64-Release/Testing
+out/build/x64-Release/.ninja_deps
+out/build/x64-Release/.ninja_log
+out/build/x64-Release/build.ninja
+out/build/x64-Release/cmake_install.cmake
+out/build/x64-Release/CMakeCache.txt
+out/build/x64-Release/VSInheritEnvironments.txt
+out/build/x64-Release/YellowWatcherAddIn.exp
+out/build/x64-Release/YellowWatcherAddIn.ilk
+src/addin.def
+CMakeSettings.json
