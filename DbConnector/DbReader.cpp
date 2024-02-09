@@ -4,7 +4,7 @@ using namespace std;
 
 namespace Soldy {
 
-	DbReader::DbReader(SQLHANDLE stmt, DbColumns columns) :
+	DbReader::DbReader(SQLHANDLE stmt, DbColumns columns):
 		stmt_(stmt),
 		columns_(columns),
 		column_bind_available_(true) {
@@ -41,9 +41,9 @@ namespace Soldy {
 		}
 		else {
 			return false;
-		}
+		}		
 	}
-
+		
 	bool DbReader::GetColumnData() {
 		for (size_t index = 0; index < columns_.Size(); ++index) {
 			DbColumn& column = columns_[index];
@@ -61,7 +61,6 @@ namespace Soldy {
 	bool DbReader::GetDynamicData(DbColumn& column, DbValue& value) {
 		SQLRETURN sql_ret = SQLGetData(stmt_, column.Number(), SqlTypeToC(value.DataType()), &buffer_[0], buffer_.size(), value.StrLenOrInd());
 		value.SetValue(&buffer_[0]);
-		//memset(&buffer_[0], '\0', buffer_.size());
 		return true;
 	}
 }

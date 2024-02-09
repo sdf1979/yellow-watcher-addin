@@ -21,7 +21,8 @@ namespace Soldy {
 		SQLHANDLE conn_;
 		SQLHANDLE stmt_;
 		std::wstring last_error_;
-		void SetLastError(SQLSMALLINT handle_type, SQLHANDLE handle);
+		std::wstring last_warning_;
+		//void SetLastError(SQLSMALLINT handle_type, SQLHANDLE handle);
 		bool ExecQuery(std::wstring& cmd);
 		bool is_connect_;
 	};

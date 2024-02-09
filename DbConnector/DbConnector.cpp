@@ -4,6 +4,26 @@ using namespace std;
 
 namespace Soldy {
 
+	wstring GetLastErrorSql(SQLSMALLINT handle_type, SQLHANDLE handle) {
+		wstring last_error;
+		SQLLEN records = 0;
+		SQLGetDiagFieldW(handle_type, handle, 0, SQL_DIAG_NUMBER, &records, 0, 0);
+		wstring sql_state(6, '\0'), msg(SQL_MAX_MESSAGE_LENGTH, '\0');
+		SQLINTEGER NativeError;
+		SQLSMALLINT msg_len;
+		SQLSMALLINT i = 1;
+		while (i <= records) {
+			if (SQL_NO_DATA != SQLGetDiagRecW(handle_type, handle, i, &sql_state[0], &NativeError, &msg[0], static_cast<SQLSMALLINT>(msg.size()), &msg_len)) {
+				last_error.append(wstring(&msg[0], msg_len));
+			}
+			else {
+				break;
+			}
+			i++;
+		}
+		return last_error;
+	}
+
 	DbConnector::DbConnector():
 		conn_(nullptr),
 		env_(nullptr),
@@ -11,9 +31,11 @@ namespace Soldy {
 		is_connect_(false)
 	{}
 
-	DbConnector::~DbConnector()	{
-		if (conn_ && is_connect_) {
+	DbConnector::~DbConnector() {
+		if (is_connect_) {
 			SQLDisconnect(conn_);
+		}
+		if (conn_) {
 			SQLFreeHandle(SQL_HANDLE_DBC, conn_);
 		}
 		if (env_) {
@@ -54,7 +76,7 @@ namespace Soldy {
 				break;
 			}
 			else if (SQL_ERROR == sql_ret || SQL_SUCCESS_WITH_INFO == sql_ret) {
-				SetLastError(SQL_HANDLE_ENV, env_);
+				last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 				j_result.emplace("success", false);
 				j_result.emplace("error", WideCharToUtf8(last_error_));
 				return boost::json::serialize(j_result);
@@ -71,6 +93,8 @@ namespace Soldy {
 	}
 
 	bool DbConnector::Connect(wstring driver, wstring server, int port, wstring db, wstring login, wstring password) {
+		last_error_.clear();
+		last_warning_.clear();
 		wstring conn_str = wstring(L"Driver={")
 			.append(driver).append(L"};")
 			.append(L"Server=").append(server).append(L",").append(to_wstring(port)).append(L";")
@@ -90,7 +114,7 @@ namespace Soldy {
 			SQL_DRIVER_NOPROMPT);
 		
 		if (!(SQL_SUCCESS == sql_ret || SQL_SUCCESS_WITH_INFO == sql_ret)) {
-			SetLastError(SQL_HANDLE_DBC, conn_);
+			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			is_connect_ = false;
 		}
 		else {
@@ -100,17 +124,19 @@ namespace Soldy {
 	}
 
 	string DbConnector::Exec(wstring cmd, wstring hash_column) {
+		last_error_.clear();
+		last_warning_.clear();
 		boost::json::object j_result;
 		SQLRETURN sql_ret = SQLAllocHandle(SQL_HANDLE_STMT, conn_, &stmt_);
 		if (SQL_SUCCESS != sql_ret) {
-			SetLastError(SQL_HANDLE_STMT, stmt_);
+			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
 		}
 		
 		if (!ExecQuery(cmd)) {
-			SetLastError(SQL_HANDLE_STMT, stmt_);
+			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			if(stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
@@ -119,12 +145,15 @@ namespace Soldy {
 		
 		DbColumns db_columns;
 		if (!db_columns.ReadColumns(stmt_)) {
-			SetLastError(SQL_HANDLE_STMT, stmt_);
+			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
 		}
+
+		//TODO Нужно при отладке
+		//std::wcout << db_columns << endl;
 
 		boost::json::object j_object;
 		
@@ -144,7 +173,7 @@ namespace Soldy {
 
 		DbReader db_reader(stmt_, db_columns);
 		if (db_reader.BindBufferAvailable() && !db_reader.BindBuffer()) {
-			SetLastError(SQL_HANDLE_STMT, stmt_);
+			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
@@ -269,6 +298,9 @@ namespace Soldy {
 		if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 
 		j_result.emplace("success", true);
+		if (!last_warning_.empty()) {
+			j_object.emplace("warning", WideCharToUtf8(last_warning_));
+		}
 		j_result.emplace("data", j_object);
 		return boost::json::serialize(j_result);
 	}
@@ -285,28 +317,13 @@ namespace Soldy {
 	//private
 	bool DbConnector::ExecQuery(wstring& cmd) {
 		SQLRETURN sql_ret = SQLExecDirectW(stmt_, &cmd[0], static_cast<SQLINTEGER>(cmd.size()));
-		if (SQL_SUCCESS_WITH_INFO == sql_ret || SQL_ERROR == sql_ret) {
+		if (SQL_ERROR == sql_ret) {
 			return false;
+		}
+		else if (SQL_SUCCESS_WITH_INFO == sql_ret) {
+			last_warning_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 		}
 		return true;
 	}
 
-	void DbConnector::SetLastError(SQLSMALLINT handle_type, SQLHANDLE handle) {
-		last_error_.clear();
-		SQLLEN records = 0;
-		SQLGetDiagFieldW(handle_type, handle, 0, SQL_DIAG_NUMBER, &records, 0, 0);
-		wstring sql_state(6, '\0'), msg(SQL_MAX_MESSAGE_LENGTH, '\0');
-		SQLINTEGER NativeError;
-		SQLSMALLINT msg_len;
-		SQLSMALLINT i = 1;
-		while (i <= records) {
-			if (SQL_NO_DATA != SQLGetDiagRecW(handle_type, handle, i, &sql_state[0], &NativeError, &msg[0], static_cast<SQLSMALLINT>(msg.size()), &msg_len)) {
-				last_error_.append(wstring(&msg[0], msg_len));
-			}
-			else {
-				break;
-			}
-			i++;
-		}
-	}
 }

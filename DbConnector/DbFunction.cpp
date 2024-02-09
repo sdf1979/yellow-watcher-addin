@@ -20,8 +20,7 @@ namespace Soldy {
 		case SQL_SMALLINT:
 			return sizeof(short int);
 		case SQL_FLOAT:
-			wcout << "DbFunction::SizeType not size for SQL_FLOAT";
-			break;
+			return sizeof(float);
 		case SQL_REAL:
 			return sizeof(float);
 		case SQL_DOUBLE:
@@ -70,8 +69,9 @@ namespace Soldy {
 		case SQL_WVARCHAR:
 			return size ? sizeof(wchar_t) * (size + 2) : 0;
 		case SQL_WLONGVARCHAR:
-			wcout << "DbFunction::SizeType not size SQL_WLONGVARCHAR";
-			break;
+			//return size ? sizeof(wchar_t) * (size + 2) : 0;
+			//Под текст запроса возвращаем буфер в 10Мб, т.к. size = 1073741823
+			return 10485760;
 		case SQL_GUID:
 			return sizeof(SQLGUID);
 		case SQL_XML:
@@ -159,8 +159,7 @@ namespace Soldy {
 		case SQL_SMALLINT:
 			return SQL_C_SSHORT;
 		case SQL_FLOAT:
-			wcout << "SqlTypeToC not allocate for SQL_FLOAT";
-			break;
+			return SQL_C_FLOAT;
 		case SQL_REAL:
 			return SQL_C_FLOAT;
 		case SQL_DOUBLE:
@@ -208,8 +207,7 @@ namespace Soldy {
 		case SQL_WVARCHAR:
 			return SQL_C_WCHAR;
 		case SQL_WLONGVARCHAR:
-			wcout << "SqlTypeToC not allocate for SQL_WLONGVARCHAR";
-			break;
+			return SQL_C_WCHAR;
 		case SQL_GUID:
 			return SQL_C_GUID;
 		case SQL_XML:

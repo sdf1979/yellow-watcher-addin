@@ -98,7 +98,7 @@ namespace Soldy {
 	}
 
 	bool DbValue::IsFloat() {
-		return SQL_REAL == data_type_;
+		return SQL_REAL == data_type_ || SQL_FLOAT == data_type_;
 	}
 
 	optional<short int> DbValue::AsShortInt() {
@@ -161,7 +161,7 @@ namespace Soldy {
 		case SQL_SMALLINT:
 			return to_wstring(*reinterpret_cast<short int*>(&buffer_[0]));
 		case SQL_FLOAT:
-			return L"SQL_FLOAT";
+			return to_wstring(*reinterpret_cast<float*>(&buffer_[0]));
 		case SQL_REAL:
 			return to_wstring(*reinterpret_cast<float*>(&buffer_[0]));
 		case SQL_DOUBLE:
@@ -226,7 +226,7 @@ namespace Soldy {
 		case SQL_WVARCHAR:
 			return wstring(reinterpret_cast<wchar_t*>(&buffer_[0]), str_len_or_ind_ / sizeof(wchar_t));
 		case SQL_WLONGVARCHAR:
-			return L"SQL_WLONGVARCHAR";
+			return wstring(reinterpret_cast<wchar_t*>(&buffer_[0]), str_len_or_ind_ / sizeof(wchar_t));
 		case SQL_GUID: {
 			wstringstream ss;
 			SQLGUID* guid = reinterpret_cast<SQLGUID*>(&buffer_[0]);

@@ -18,6 +18,7 @@ namespace Soldy {
 	void DeleteXmlTag(std::string_view& sv);
 	void ChangeCreateClusteredIndex(std::string& sql_hash, std::string_view& sv);
 
+	std::string_view ReplacingTab(std::string_view sv, std::string& str);
 	std::string_view ReplacingParameters(std::string_view sv, std::string& str);
 
 	std::string GetSHA256(const std::string& str, std::stringstream& ss);

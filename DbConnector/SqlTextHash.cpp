@@ -12,6 +12,8 @@ namespace Soldy {
 		DeleteParam(sv);
 		DeleteSpExecuteSql(sv);
 		DeleteXmlTag(sv);
+		string replacing_string_tab;
+		sv = ReplacingTab(sv, replacing_string_tab);
 		string replacing_string;
 		sv = ReplacingParameters(sv, replacing_string);
 		string sql_hash;
@@ -103,7 +105,7 @@ namespace Soldy {
 	}
 
 	void DeleteLeftParameters(std::string_view& sv) {
-		if (sv.substr(0, 3) == "(@P") {
+		if (sv.substr(0, 2) == "(@") {
 			int stack = 0;
 			for (size_t index = 0; index < sv.size(); ++index) {
 				if (sv[index] == '(') {
@@ -151,10 +153,30 @@ namespace Soldy {
 		}
 	}
 
-	void DeleteXmlTag(std::string_view& sv) {
+	void DeleteXmlTag(string_view& sv) {
 		if (sv.substr(0, 10) == "<?query --" && sv.substr(sv.size() - 4, 4) == "--?>") {
 			sv.remove_prefix(10);
 			sv.remove_suffix(4);
+		}
+	}
+
+	string_view ReplacingTab(string_view sv, string& str) {
+		for (;;) {
+			auto pos = sv.find('\t');
+			if (pos != string_view::npos) {
+				str.append(sv.substr(0, pos)).append(" ");
+				sv.remove_prefix(pos + 1);
+			}
+			else {
+				break;
+			}
+		}
+		if (str.size()) {
+			str.append(sv);
+			return string_view(str);
+		}
+		else {
+			return sv;
 		}
 	}
 
@@ -170,9 +192,11 @@ namespace Soldy {
 	}
 
 	string_view ReplacingParameters(string_view sv, string& str) {
+		bool is_find = false;
 		for (;;) {
 			auto pos = sv.find("@P");
 			if (pos != string_view::npos) {
+				is_find = true;
 				str.append(sv.substr(0, pos)).append("?");
 				sv.remove_prefix(pos + 2);
 				pos = sv.find_first_not_of("1234567890");
@@ -180,13 +204,34 @@ namespace Soldy {
 					sv.remove_prefix(pos);
 				}
 				else {
-					break;
+					sv.remove_prefix(sv.size());
 				}
 			}
 			else {
 				break;
 			}
 		}
+
+		if (!is_find) {
+			for (;;) {
+				auto pos = sv.find("@");
+				if (pos != string_view::npos) {
+					str.append(sv.substr(0, pos)).append("?");
+					sv.remove_prefix(pos + 1);
+					pos = sv.find_first_of(" =,)\r\n\t");
+					if (pos != string_view::npos) {
+						sv.remove_prefix(pos);
+					}
+					else {
+						sv.remove_prefix(sv.size());
+					}
+				}
+				else {
+					break;
+				}
+			}
+		}
+
 		if (str.size()) {
 			str.append(sv);
 			return string_view(str);

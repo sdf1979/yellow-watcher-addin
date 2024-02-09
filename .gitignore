@@ -15,3 +15,4 @@ out/build/x64-Release/YellowWatcherAddIn.exp
 out/build/x64-Release/YellowWatcherAddIn.ilk
 src/addin.def
 CMakeSettings.json
+out/build/x64-Release/CodeAnalysis/results.sarif
