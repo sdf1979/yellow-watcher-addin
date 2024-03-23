@@ -25,7 +25,7 @@
 
 class YellowWatcherAddIn final : public Component {
 public:
-    const char *Version = u8"1.0.1";
+    const char *Version = u8"1.0.3";
 
     YellowWatcherAddIn();
 

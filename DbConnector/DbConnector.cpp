@@ -122,11 +122,12 @@ namespace Soldy {
 		}
 		return is_connect_;
 	}
-
-	string DbConnector::Exec(wstring cmd, wstring hash_column) {
+	
+	string DbConnector::Exec(wstring cmd, const wstring& hash_columns) {
 		last_error_.clear();
 		last_warning_.clear();
 		boost::json::object j_result;
+
 		SQLRETURN sql_ret = SQLAllocHandle(SQL_HANDLE_STMT, conn_, &stmt_);
 		if (SQL_SUCCESS != sql_ret) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
@@ -144,7 +145,7 @@ namespace Soldy {
 		}
 		
 		DbColumns db_columns;
-		if (!db_columns.ReadColumns(stmt_)) {
+		if (!db_columns.ReadColumns(stmt_, hash_columns)) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
@@ -152,19 +153,19 @@ namespace Soldy {
 			return boost::json::serialize(j_result);
 		}
 
-		//TODO Нужно при отладке
-		//std::wcout << db_columns << endl;
+#ifdef _DEBUG
+		std::wcout << db_columns << endl;
+#endif // _DEBUG
 
 		boost::json::object j_object;
-		
 		boost::json::array j_columns;
 
-		SQLUSMALLINT index_hash_column = 0;
+		//SQLUSMALLINT index_hash_column = 0;
 		for (auto it = db_columns.begin(); it < db_columns.end(); ++it) {
 			boost::json::object j_column;
 			j_columns.emplace_back(WideCharToUtf8(it->Name()));
-			if (it->Name() == hash_column) {
-				index_hash_column = it->Number();
+			if (it->CalculateHash()) {
+				//index_hash_column = it->Number();
 				j_columns.emplace_back(WideCharToUtf8(it->Name().append(L"_normalized")));
 				j_columns.emplace_back(WideCharToUtf8(it->Name().append(L"_hash")));
 			}
@@ -185,7 +186,7 @@ namespace Soldy {
 		while (db_reader.Next()) {
 			boost::json::array j_row;
 			vector<DbValue>& row = db_reader.Row();
-			SQLUSMALLINT index_column = 1;
+			SQLUSMALLINT index_column = 0;
 			for (auto it = row.begin(); it < row.end(); ++it) {
 				switch (it->ValueType())
 				{
@@ -231,7 +232,7 @@ namespace Soldy {
 					auto value = it->AsString();
 					if (value) {
 						j_row.emplace_back(*value);
-						if (index_column == index_hash_column) {
+						if (db_columns[index_column].CalculateHash()) {
 							string sql_hash = SqlHashDbMsSql(&*value);
 							j_row.emplace_back(sql_hash);
 							j_row.emplace_back(GetSHA256(sql_hash, ss));
@@ -239,8 +240,10 @@ namespace Soldy {
 					}
 					else {
 						j_row.emplace_back(boost::json::value());
-						j_row.emplace_back(boost::json::value());
-						j_row.emplace_back(boost::json::value());
+						if (db_columns[index_column].CalculateHash()) {
+							j_row.emplace_back(boost::json::value());
+							j_row.emplace_back(boost::json::value());
+						}
 					}
 				}
 					break;
