@@ -43,6 +43,7 @@ YellowWatcherAddIn::YellowWatcherAddIn() {
 
     AddMethod(L"CreateConnection", L"СоздатьСоединение", this, &YellowWatcherAddIn::сreateConnection);
     AddMethod(L"Connect", L"Соединиться", this, &YellowWatcherAddIn::connect);
+    AddMethod(L"CloseConnection", L"ЗакрытьСоединение", this, &YellowWatcherAddIn::closeConnect);
     AddMethod(L"ExecuteAndCalculateHash", L"ВыполнитьИВычислитьХеш", this, &YellowWatcherAddIn::executeAndCalculateHash);
     AddMethod(L"Execute", L"Выполнить", this, &YellowWatcherAddIn::execute);
     AddMethod(L"QueryHash", L"ХешЗапроса", this, &YellowWatcherAddIn::queryHash);
@@ -65,6 +66,10 @@ variant_t YellowWatcherAddIn::connect(const variant_t& driver, const variant_t& 
         Soldy::Utf8ToWideChar(std::get<std::string>(user)),
         Soldy::Utf8ToWideChar(std::get<std::string>(password))
         );
+}
+
+void YellowWatcherAddIn::closeConnect() {
+    db_connecor.CloseConnect();
 }
 
 variant_t YellowWatcherAddIn::executeAndCalculateHash(const variant_t& query, const variant_t& column) {

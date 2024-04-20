@@ -25,7 +25,7 @@
 
 class YellowWatcherAddIn final : public Component {
 public:
-    const char *Version = u8"1.0.3";
+    const char *Version = u8"1.0.4";
 
     YellowWatcherAddIn();
 
@@ -33,24 +33,13 @@ private:
     std::string extensionName() override;
     variant_t сreateConnection();
     variant_t connect(const variant_t& driver, const variant_t& server, const variant_t& port,
-        const variant_t& db, const variant_t& user, const variant_t& password);
+    const variant_t& db, const variant_t& user, const variant_t& password);
     variant_t executeAndCalculateHash(const variant_t& query, const variant_t& column);
     variant_t execute(const variant_t& query);
     variant_t queryHash(const variant_t& query);
     variant_t drivers();
     variant_t getLastError();
-    
-    //variant_t add(const variant_t &a, const variant_t &b);
-
-    //void message(const variant_t &msg);
-
-    //void sleep(const variant_t &delay);
-
-    //void assign(variant_t &out);
-
-    //variant_t samplePropertyValue();
-
-    //variant_t currentDate();
+    void closeConnect();
 
     std::shared_ptr<variant_t> sample_property;
     Soldy::DbConnector db_connecor;

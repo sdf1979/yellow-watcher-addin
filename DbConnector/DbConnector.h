@@ -13,6 +13,7 @@ namespace Soldy {
 		bool Create();
 		std::string GetDrivers();
 		bool Connect(std::wstring driver, std::wstring server, int port, std::wstring db, std::wstring login, std::wstring password);
+		void CloseConnect();
 		std::wstring GetLastError() { return last_error_; }
 		std::string Exec(std::wstring cmd, const std::wstring& hash_columns);
 		std::string QueryHash(std::wstring query_text);

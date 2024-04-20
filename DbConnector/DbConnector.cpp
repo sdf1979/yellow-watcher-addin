@@ -32,15 +32,7 @@ namespace Soldy {
 	{}
 
 	DbConnector::~DbConnector() {
-		if (is_connect_) {
-			SQLDisconnect(conn_);
-		}
-		if (conn_) {
-			SQLFreeHandle(SQL_HANDLE_DBC, conn_);
-		}
-		if (env_) {
-			SQLFreeHandle(SQL_HANDLE_ENV, env_);
-		}
+		CloseConnect();
 	}
 
 	bool DbConnector::Create() {
@@ -95,34 +87,61 @@ namespace Soldy {
 	bool DbConnector::Connect(wstring driver, wstring server, int port, wstring db, wstring login, wstring password) {
 		last_error_.clear();
 		last_warning_.clear();
-		wstring conn_str = wstring(L"Driver={")
-			.append(driver).append(L"};")
-			.append(L"Server=").append(server).append(L",").append(to_wstring(port)).append(L";")
-			.append(L"Database=").append(db).append(L";")
-			.append(L"UID=").append(login).append(L";")
-			.append(L"PWD=").append(password).append(L";");
-		wstring out_conn_str(1024, '\0');
 
-		SQLRETURN sql_ret = SQLDriverConnectW(
-			conn_,
-			NULL,
-			&conn_str[0],
-			static_cast<SQLSMALLINT>(conn_str.size()),
-			&out_conn_str[0],
-			static_cast<SQLSMALLINT>(out_conn_str.size()),
-			NULL,
-			SQL_DRIVER_NOPROMPT);
-		
-		if (!(SQL_SUCCESS == sql_ret || SQL_SUCCESS_WITH_INFO == sql_ret)) {
-			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
-			is_connect_ = false;
+		if (!is_connect_) {
+			wstring conn_str = wstring(L"Driver={")
+				.append(driver).append(L"};")
+				.append(L"Server=").append(server).append(L",").append(to_wstring(port)).append(L";")
+				.append(L"Database=").append(db).append(L";")
+				.append(L"UID=").append(login).append(L";")
+				.append(L"PWD=").append(password).append(L";");
+			wstring out_conn_str(1024, '\0');
+
+			SQLRETURN sql_ret = SQLDriverConnectW(
+				conn_,
+				NULL,
+				&conn_str[0],
+				static_cast<SQLSMALLINT>(conn_str.size()),
+				&out_conn_str[0],
+				static_cast<SQLSMALLINT>(out_conn_str.size()),
+				NULL,
+				SQL_DRIVER_NOPROMPT);
+
+			if (!(SQL_SUCCESS == sql_ret || SQL_SUCCESS_WITH_INFO == sql_ret)) {
+				last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
+				is_connect_ = false;
+			}
+			else {
+				is_connect_ = true;
+			}
 		}
 		else {
-			is_connect_ = true;
+			//TODO Нужно сделать так, что бы в 1С было исключение
+			last_error_ = L"Connection in use. You need to disconnect.";
+			return false;
 		}
 		return is_connect_;
 	}
 	
+	void DbConnector::CloseConnect() {
+		if (stmt_) {
+			SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
+			stmt_ = nullptr;
+		}
+		if (is_connect_) {
+			SQLDisconnect(conn_);
+			is_connect_ = false;
+		}
+		if (conn_) {
+			SQLFreeHandle(SQL_HANDLE_DBC, conn_);
+			conn_ = nullptr;
+		}
+		if (env_) {
+			SQLFreeHandle(SQL_HANDLE_ENV, env_);
+			env_ = nullptr;
+		}
+	}
+
 	string DbConnector::Exec(wstring cmd, const wstring& hash_columns) {
 		last_error_.clear();
 		last_warning_.clear();
@@ -138,7 +157,10 @@ namespace Soldy {
 		
 		if (!ExecQuery(cmd)) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
-			if(stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
+			SQLFreeStmt(stmt_, SQL_CLOSE);
+			SQLFreeStmt(stmt_, SQL_UNBIND);
+			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
+			//if(stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
@@ -147,7 +169,10 @@ namespace Soldy {
 		DbColumns db_columns;
 		if (!db_columns.ReadColumns(stmt_, hash_columns)) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
-			if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
+			SQLFreeStmt(stmt_, SQL_CLOSE);
+			SQLFreeStmt(stmt_, SQL_UNBIND);
+			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
+			//if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
@@ -175,7 +200,10 @@ namespace Soldy {
 		DbReader db_reader(stmt_, db_columns);
 		if (db_reader.BindBufferAvailable() && !db_reader.BindBuffer()) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
-			if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
+			SQLFreeStmt(stmt_, SQL_CLOSE);
+			SQLFreeStmt(stmt_, SQL_UNBIND);
+			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
+			//if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
@@ -298,7 +326,10 @@ namespace Soldy {
 
 		j_object.emplace("rows", j_rows);
 
-		if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
+		SQLFreeStmt(stmt_, SQL_CLOSE);
+		SQLFreeStmt(stmt_, SQL_UNBIND);
+		SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
+		//if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 
 		j_result.emplace("success", true);
 		if (!last_warning_.empty()) {
