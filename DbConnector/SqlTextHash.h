@@ -24,4 +24,10 @@ namespace Soldy {
 
 	std::string GetSHA256(const std::string& str, std::stringstream& ss);
 	std::string GetSHA256(const std::string& str);
+	template<typename T>
+	std::string GetSHA256(const T& t, std::stringstream& ss) {
+		std::string msg = "Unsupported data type: ";
+		msg.append(typeid(t).name());
+		return msg;
+	}
 }
