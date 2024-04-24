@@ -4,6 +4,15 @@
 #include "DbColumn.h"
 #include "DbReader.h"
 
+#define __FILENAME__ (strrchr(__FILE__, '\\')?strrchr(__FILE__, '\\')+1:__FILE__)
+#if defined(__GNUC__)
+#	define EXCEPTION string(__FILENAME__).append(" : ").append(to_string(__LINE__)).append("\n").append(__PRETTY_FUNCTION__)
+#elif defined(_MSC_VER)
+#	define EXCEPTION string(__FILENAME__).append(" : ").append(to_string(__LINE__)).append("\n").append(__FUNCSIG__)
+#else
+#   define EXCEPTION string(__FILENAME__).append(" : ").append(to_string(__LINE__)).append("\n").append(__func__)
+#endif
+
 namespace Soldy {
 	
 	class DbConnector{
@@ -23,7 +32,6 @@ namespace Soldy {
 		SQLHANDLE stmt_;
 		std::wstring last_error_;
 		std::wstring last_warning_;
-		//void SetLastError(SQLSMALLINT handle_type, SQLHANDLE handle);
 		bool ExecQuery(std::wstring& cmd);
 		bool is_connect_;
 	};

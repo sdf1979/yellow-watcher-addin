@@ -116,8 +116,9 @@ namespace Soldy {
 			}
 		}
 		else {
-			//TODO Нужно сделать так, что бы в 1С было исключение
-			last_error_ = L"Connection in use. You need to disconnect.";
+			last_error_ = L"Соединение активно. Для нового подключения необходимо его закрыть.\n";
+			last_error_.append(Utf8ToWideChar(EXCEPTION));
+			throw std::runtime_error(WideCharToUtf8(last_error_));
 			return false;
 		}
 		return is_connect_;
