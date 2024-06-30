@@ -30,7 +30,12 @@ list(APPEND SOURCES
         DbConnector/DbValue.h
         DbConnector/DbValue.cpp
         DbConnector/SqlTextHash.h
-        DbConnector/SqlTextHash.cpp)
+        DbConnector/SqlTextHash.cpp
+        ExtentedEvents/ExtentedEvents.h
+        ExtentedEvents/ExtentedEvents.cpp
+        PugiXml/pugiconfig.hpp
+        PugiXml/pugixml.hpp
+        PugiXml/pugixml.cpp)
 
 if (ANDROID)
     list(APPEND SOURCES
@@ -57,11 +62,11 @@ endif ()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_include_directories(${TARGET} PRIVATE
-        include DbConnector D:\\boost\\boost_1_79_0 D:\\openssl\\lib\\x64\\debug\\include)
+        include DbConnector ExtentedEvents PugiXml D:\\boost\\boost_1_79_0 D:\\openssl\\lib\\x64\\debug\\include)
     target_link_directories(${TARGET} PUBLIC D:\\boost\\boost_1_79_0\\lib D:\\openssl\\lib\\x64\\debug\\lib)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_include_directories(${TARGET} PRIVATE
-        include DbConnector D:\\boost\\boost_1_79_0 D:\\openssl\\lib\\x64\\release\\include)
+        include DbConnector ExtentedEvents PugiXml D:\\boost\\boost_1_79_0 D:\\openssl\\lib\\x64\\release\\include)
     target_link_directories(${TARGET} PUBLIC D:\\boost\\boost_1_79_0\\lib D:\\openssl\\lib\\x64\\release\\lib)
 endif ()
 

@@ -19,10 +19,12 @@ namespace Soldy {
 		bool IsInt();
 		bool IsInt64();
 		bool IsFloat();
+		bool IsBit();
 		std::optional<short int> AsShortInt();
 		std::optional<long int> AsInt();
 		std::optional<long long> AsInt64();
 		std::optional<float> AsFloat();
+		std::optional<unsigned char> AsBit();
 		std::optional<std::string> AsString();
 		std::optional<std::wstring> AsWstring();
 	private:

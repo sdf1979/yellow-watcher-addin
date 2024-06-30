@@ -4,13 +4,30 @@ using namespace std;
 
 namespace Soldy {
 
-	unordered_set<wstring> SplitString(wstring hash_columns) {
-		unordered_set<wstring> tokens;
+	pair<wstring, wstring> GetKeyValue(wstring str) {
+		vector<wstring> tokens;
+		wchar_t* buffer;
+		wchar_t* token = wcstok_s(str.data(), L"=", &buffer);
+		while (token) {
+			tokens.push_back(token);
+			token = wcstok_s(nullptr, L"=", &buffer);
+		}
+		if (tokens.size() == 1) {
+			return { tokens[0], L"" };
+		}
+		else if (tokens.size() == 2) {
+			return { tokens[0], tokens[1] };
+		}
+		return { L"", L"" };
+	}
+
+	unordered_map<wstring, wstring> SplitString(wstring hash_columns) {
+		unordered_map<wstring, wstring> tokens;
 		wchar_t* buffer;
 		wchar_t* token = wcstok_s(hash_columns.data(), L", ", &buffer);
 		while (token) {
-			tokens.insert(token);
-			token = wcstok_s(nullptr, L" ", &buffer);
+			tokens.insert(GetKeyValue(token));
+			token = wcstok_s(nullptr, L", ", &buffer);
 		}
 		return tokens;
 	}
@@ -38,7 +55,7 @@ namespace Soldy {
 		return os;
 	}
 
-	DbColumn::DbColumn(SQLHANDLE handle, SQLUSMALLINT number, const unordered_set<wstring>& hash_columns):
+	DbColumn::DbColumn(SQLHANDLE handle, SQLUSMALLINT number, const unordered_map<wstring, wstring>& hash_columns):
 		number_(number),
 		data_type_(0),
 		size_(0),
@@ -52,7 +69,10 @@ namespace Soldy {
 			SQLDescribeColW(handle, number_, &name_[0], static_cast<SQLSMALLINT>(name_.size()), &name_length, &data_type_,
 				&size_, &decimal_digits_, &nullable_);
 			name_.resize(name_length);
-			сalculate_hash_ = (hash_columns.find(name_) != hash_columns.end());
+			if (auto search = hash_columns.find(name_); search != hash_columns.end()) {
+				сalculate_hash_ = true;
+				filter_hash_ = WideCharToUtf8(search->second);
+			}
 		}		
 	}
 

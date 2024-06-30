@@ -161,7 +161,6 @@ namespace Soldy {
 			SQLFreeStmt(stmt_, SQL_CLOSE);
 			SQLFreeStmt(stmt_, SQL_UNBIND);
 			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
-			//if(stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
@@ -173,7 +172,6 @@ namespace Soldy {
 			SQLFreeStmt(stmt_, SQL_CLOSE);
 			SQLFreeStmt(stmt_, SQL_UNBIND);
 			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
-			//if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
@@ -186,12 +184,10 @@ namespace Soldy {
 		boost::json::object j_object;
 		boost::json::array j_columns;
 
-		//SQLUSMALLINT index_hash_column = 0;
 		for (auto it = db_columns.begin(); it < db_columns.end(); ++it) {
 			boost::json::object j_column;
 			j_columns.emplace_back(WideCharToUtf8(it->Name()));
 			if (it->CalculateHash()) {
-				//index_hash_column = it->Number();
 				j_columns.emplace_back(WideCharToUtf8(it->Name().append(L"_normalized")));
 				j_columns.emplace_back(WideCharToUtf8(it->Name().append(L"_hash")));
 			}
@@ -204,7 +200,6 @@ namespace Soldy {
 			SQLFreeStmt(stmt_, SQL_CLOSE);
 			SQLFreeStmt(stmt_, SQL_UNBIND);
 			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
-			//if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
 			return boost::json::serialize(j_result);
@@ -216,6 +211,7 @@ namespace Soldy {
 			boost::json::array j_row;
 			vector<DbValue>& row = db_reader.Row();
 			SQLUSMALLINT index_column = 0;
+			bool add_row = true;
 			for (auto it = row.begin(); it < row.end(); ++it) {
 				switch (it->ValueType())
 				{
@@ -256,6 +252,15 @@ namespace Soldy {
 							j_row.emplace_back(boost::json::value());
 						}
 					}
+					else if (it->IsBit()) {
+						auto value = it->AsBit();
+						if (value) {
+							j_row.emplace_back(*value);
+						}
+						else {
+							j_row.emplace_back(boost::json::value());
+						}
+					}
 					break;
 				case DbValueType::String: {
 					auto value = it->AsString();
@@ -263,8 +268,12 @@ namespace Soldy {
 						j_row.emplace_back(*value);
 						if (db_columns[index_column].CalculateHash()) {
 							string sql_hash = SqlHashDbMsSql(&*value);
+							string sql_hash_sha256 = GetSHA256(sql_hash, ss);
 							j_row.emplace_back(sql_hash);
-							j_row.emplace_back(GetSHA256(sql_hash, ss));
+							j_row.emplace_back(sql_hash_sha256);
+							if (add_row && !db_columns[index_column].FilterHash().empty() && db_columns[index_column].FilterHash() != sql_hash_sha256) {
+								add_row = false;
+							}
 						}
 					}
 					else {
@@ -272,6 +281,9 @@ namespace Soldy {
 						if (db_columns[index_column].CalculateHash()) {
 							j_row.emplace_back(boost::json::value());
 							j_row.emplace_back(boost::json::value());
+							if (add_row && !db_columns[index_column].FilterHash().empty()) {
+								add_row = false;
+							}
 						}
 					}
 				}
@@ -322,7 +334,9 @@ namespace Soldy {
 				}
 				++index_column;
 			}
-			j_rows.emplace_back(j_row);
+			if (add_row) {
+				j_rows.emplace_back(j_row);
+			}
 		}
 
 		j_object.emplace("rows", j_rows);
@@ -330,8 +344,7 @@ namespace Soldy {
 		SQLFreeStmt(stmt_, SQL_CLOSE);
 		SQLFreeStmt(stmt_, SQL_UNBIND);
 		SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
-		//if (stmt_) SQLFreeHandle(SQL_HANDLE_STMT, stmt_);
-
+		
 		j_result.emplace("success", true);
 		if (!last_warning_.empty()) {
 			j_object.emplace("warning", WideCharToUtf8(last_warning_));

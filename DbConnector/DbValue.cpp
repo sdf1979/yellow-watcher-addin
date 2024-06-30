@@ -101,6 +101,10 @@ namespace Soldy {
 		return SQL_REAL == data_type_ || SQL_FLOAT == data_type_;
 	}
 
+	bool DbValue::IsBit() {
+		return SQL_BIT == data_type_;
+	}
+
 	optional<short int> DbValue::AsShortInt() {
 		if (IsValueSet()) {
 			return *reinterpret_cast<short int*>(&buffer_[0]);
@@ -131,6 +135,15 @@ namespace Soldy {
 	optional<float> DbValue::AsFloat() {
 		if (IsValueSet()) {
 			return *reinterpret_cast<float*>(&buffer_[0]);
+		}
+		else {
+			return nullopt;
+		}
+	}
+
+	optional<unsigned char> DbValue::AsBit() {
+		if (IsValueSet()) {
+			return *reinterpret_cast<unsigned char*>(&buffer_[0]);
 		}
 		else {
 			return nullopt;

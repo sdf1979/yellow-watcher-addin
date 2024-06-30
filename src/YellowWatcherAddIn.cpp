@@ -49,7 +49,7 @@ YellowWatcherAddIn::YellowWatcherAddIn() {
     AddMethod(L"QueryHash", L"ХешЗапроса", this, &YellowWatcherAddIn::queryHash);
     AddMethod(L"Drivers", L"Драйверы", this, &YellowWatcherAddIn::drivers);
     AddMethod(L"GetLastError", L"ПолучитьПоследнююОшибку", this, &YellowWatcherAddIn::getLastError);
-
+    AddMethod(L"ParseExtentedEvent", L"АнализРасширенногоСобытия", this, &YellowWatcherAddIn::parseExtentedEvent);
 }
 
 variant_t YellowWatcherAddIn::сreateConnection() {
@@ -94,4 +94,8 @@ variant_t YellowWatcherAddIn::drivers() {
 
 variant_t YellowWatcherAddIn::getLastError() {
     return Soldy::WideCharToUtf8(db_connecor.GetLastError());
+}
+
+variant_t YellowWatcherAddIn::parseExtentedEvent(const variant_t& extented_event) {
+    return Soldy::ParseExtentedEvent(std::get<std::string>(extented_event));
 }

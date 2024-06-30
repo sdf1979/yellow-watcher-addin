@@ -22,10 +22,11 @@
 
 #include "Component.h"
 #include "DbConnector.h"
+#include "ExtentedEvents.h"
 
 class YellowWatcherAddIn final : public Component {
 public:
-    const char *Version = u8"1.0.6";
+    const char *Version = u8"1.0.8";
 
     YellowWatcherAddIn();
 
@@ -39,6 +40,7 @@ private:
     variant_t queryHash(const variant_t& query);
     variant_t drivers();
     variant_t getLastError();
+    variant_t parseExtentedEvent(const variant_t& extented_event);
     void closeConnect();
 
     std::shared_ptr<variant_t> sample_property;

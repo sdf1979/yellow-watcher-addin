@@ -1,19 +1,21 @@
 ﻿#pragma once
 
 #include "DbHeader.h"
-#include <unordered_set>
+#include <unordered_map>
+#include <vector>
 
 namespace Soldy {
 
 	class DbColumn {
 	public:
-		DbColumn(SQLHANDLE handle, SQLUSMALLINT number, const std::unordered_set<std::wstring>& hash_columns);
+		DbColumn(SQLHANDLE handle, SQLUSMALLINT number, const std::unordered_map<std::wstring, std::wstring>& hash_columns);
 		SQLSMALLINT DataType() { return data_type_; }
 		SQLULEN Size() { return size_; }
 		SQLUSMALLINT Number() { return number_; }
 		std::wstring Name() { return name_; }
 		std::wstring DataTypeStr() { return SqlTypeToString(data_type_); }
 		bool CalculateHash() { return сalculate_hash_; }
+		const std::string& FilterHash() { return filter_hash_; }
 	private:
 		SQLUSMALLINT number_;
 		std::wstring name_;
@@ -22,6 +24,7 @@ namespace Soldy {
 		SQLSMALLINT decimal_digits_;
 		SQLSMALLINT nullable_;
 		bool сalculate_hash_;
+		std::string filter_hash_;
 		friend std::wostream& operator<<(std::wostream& os, const DbColumn& db_column);
 	};
 
