@@ -26,7 +26,7 @@
 
 class YellowWatcherAddIn final : public Component {
 public:
-    const char *Version = u8"1.0.8";
+    const char *Version = u8"1.0.9";
 
     YellowWatcherAddIn();
 
@@ -35,8 +35,8 @@ private:
     variant_t сreateConnection();
     variant_t connect(const variant_t& driver, const variant_t& server, const variant_t& port,
     const variant_t& db, const variant_t& user, const variant_t& password);
-    variant_t executeAndCalculateHash(const variant_t& query, const variant_t& column);
-    variant_t execute(const variant_t& query);
+    variant_t executeAndCalculateHash(const variant_t& query, const variant_t& column, const variant_t& timeout);
+    variant_t execute(const variant_t& query, const variant_t& timeout);
     variant_t queryHash(const variant_t& query);
     variant_t drivers();
     variant_t getLastError();

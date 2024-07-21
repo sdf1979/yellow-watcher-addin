@@ -143,7 +143,7 @@ namespace Soldy {
 		}
 	}
 
-	string DbConnector::Exec(wstring cmd, const wstring& hash_columns) {
+	boost::json::object DbConnector::ExecAsObject(wstring& cmd, const wstring& hash_columns, int timeout) {
 		last_error_.clear();
 		last_warning_.clear();
 		boost::json::object j_result;
@@ -153,9 +153,13 @@ namespace Soldy {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
-			return boost::json::serialize(j_result);
+			return j_result;
 		}
-		
+
+		if (timeout) {
+			SQLSetStmtAttr(stmt_, SQL_ATTR_QUERY_TIMEOUT, (SQLPOINTER)timeout, 0);
+		}
+
 		if (!ExecQuery(cmd)) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
 			SQLFreeStmt(stmt_, SQL_CLOSE);
@@ -163,9 +167,9 @@ namespace Soldy {
 			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
-			return boost::json::serialize(j_result);
+			return j_result;
 		}
-		
+
 		DbColumns db_columns;
 		if (!db_columns.ReadColumns(stmt_, hash_columns)) {
 			last_error_ = GetLastErrorSql(SQL_HANDLE_STMT, stmt_);
@@ -174,7 +178,7 @@ namespace Soldy {
 			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
-			return boost::json::serialize(j_result);
+			return j_result;
 		}
 
 #ifdef _DEBUG
@@ -202,7 +206,7 @@ namespace Soldy {
 			SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
 			j_result.emplace("success", false);
 			j_result.emplace("error", WideCharToUtf8(last_error_));
-			return boost::json::serialize(j_result);
+			return j_result;
 		};
 
 		stringstream ss;
@@ -223,9 +227,9 @@ namespace Soldy {
 						}
 						else {
 							j_row.emplace_back(boost::json::value());
-						}						
+						}
 					}
-					else if(it->IsInt()) {
+					else if (it->IsInt()) {
 						auto value = it->AsInt();
 						if (value) {
 							j_row.emplace_back(*value);
@@ -287,7 +291,7 @@ namespace Soldy {
 						}
 					}
 				}
-					break;
+										break;
 				case DbValueType::Datetime: {
 					auto value = it->AsString();
 					if (value) {
@@ -297,7 +301,7 @@ namespace Soldy {
 						j_row.emplace_back(boost::json::value());
 					}
 				}
-					break;
+										  break;
 				case DbValueType::Binary: {
 					auto value = it->AsString();
 					if (value) {
@@ -307,7 +311,7 @@ namespace Soldy {
 						j_row.emplace_back(boost::json::value());
 					}
 				}
-					break;
+										break;
 				case DbValueType::Guid: {
 					auto value = it->AsString();
 					if (value) {
@@ -317,7 +321,7 @@ namespace Soldy {
 						j_row.emplace_back(boost::json::value());
 					}
 				}
-					break;
+									  break;
 				case DbValueType::Xml: {
 					auto value = it->AsString();
 					if (value) {
@@ -327,7 +331,7 @@ namespace Soldy {
 						j_row.emplace_back(boost::json::value());
 					}
 				}
-					break;
+									 break;
 				default:
 					j_row.emplace_back("unknow value type");
 					break;
@@ -344,12 +348,17 @@ namespace Soldy {
 		SQLFreeStmt(stmt_, SQL_CLOSE);
 		SQLFreeStmt(stmt_, SQL_UNBIND);
 		SQLFreeStmt(stmt_, SQL_RESET_PARAMS);
-		
+
 		j_result.emplace("success", true);
 		if (!last_warning_.empty()) {
 			j_object.emplace("warning", WideCharToUtf8(last_warning_));
 		}
 		j_result.emplace("data", j_object);
+		return j_result;
+	}
+
+	string DbConnector::Exec(wstring cmd, const wstring& hash_columns, int timeout) {
+		boost::json::object j_result = ExecAsObject(cmd, hash_columns, timeout);
 		return boost::json::serialize(j_result);
 	}
 

@@ -44,8 +44,8 @@ YellowWatcherAddIn::YellowWatcherAddIn() {
     AddMethod(L"CreateConnection", L"СоздатьСоединение", this, &YellowWatcherAddIn::сreateConnection);
     AddMethod(L"Connect", L"Соединиться", this, &YellowWatcherAddIn::connect);
     AddMethod(L"CloseConnection", L"ЗакрытьСоединение", this, &YellowWatcherAddIn::closeConnect);
-    AddMethod(L"ExecuteAndCalculateHash", L"ВыполнитьИВычислитьХеш", this, &YellowWatcherAddIn::executeAndCalculateHash);
-    AddMethod(L"Execute", L"Выполнить", this, &YellowWatcherAddIn::execute);
+    AddMethod(L"ExecuteAndCalculateHash", L"ВыполнитьИВычислитьХеш", this, &YellowWatcherAddIn::executeAndCalculateHash, { {2, 0} });
+    AddMethod(L"Execute", L"Выполнить", this, &YellowWatcherAddIn::execute, { {1, 0} });
     AddMethod(L"QueryHash", L"ХешЗапроса", this, &YellowWatcherAddIn::queryHash);
     AddMethod(L"Drivers", L"Драйверы", this, &YellowWatcherAddIn::drivers);
     AddMethod(L"GetLastError", L"ПолучитьПоследнююОшибку", this, &YellowWatcherAddIn::getLastError);
@@ -72,15 +72,15 @@ void YellowWatcherAddIn::closeConnect() {
     db_connecor.CloseConnect();
 }
 
-variant_t YellowWatcherAddIn::executeAndCalculateHash(const variant_t& query, const variant_t& column) {
+variant_t YellowWatcherAddIn::executeAndCalculateHash(const variant_t& query, const variant_t& column, const variant_t& timeout) {
     std::wstring w_query = Soldy::Utf8ToWideChar(std::get<std::string>(query));
     std::wstring w_column = Soldy::Utf8ToWideChar(std::get<std::string>(column));
-    return db_connecor.Exec(w_query, w_column);
+    return db_connecor.Exec(w_query, w_column, std::get<int>(timeout));
 }
 
-variant_t YellowWatcherAddIn::execute(const variant_t& query) {
+variant_t YellowWatcherAddIn::execute(const variant_t& query, const variant_t& timeout) {
     std::wstring w_query = Soldy::Utf8ToWideChar(std::get<std::string>(query));
-    return db_connecor.Exec(w_query, L"");
+    return db_connecor.Exec(w_query, L"", std::get<int>(timeout));
 }
 
 variant_t YellowWatcherAddIn::queryHash(const variant_t& query) {

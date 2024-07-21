@@ -24,7 +24,8 @@ namespace Soldy {
 		bool Connect(std::wstring driver, std::wstring server, int port, std::wstring db, std::wstring login, std::wstring password);
 		void CloseConnect();
 		std::wstring GetLastError() { return last_error_; }
-		std::string Exec(std::wstring cmd, const std::wstring& hash_columns);
+		boost::json::object ExecAsObject(std::wstring& cmd, const std::wstring& hash_columns, int timeout);
+		std::string Exec(std::wstring cmd, const std::wstring& hash_columns, int timeout);
 		std::string QueryHash(std::wstring query_text);
 	private:
 		SQLHANDLE env_;
